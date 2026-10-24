@@ -1,7 +1,8 @@
 # Nico Vale trail map
 
-Published at https://nicovale1996.github.io/.
+Public trail map: [nicovale1996.github.io](https://nicovale1996.github.io/).
 
-This repository contains only the public GitHub Pages output in `docs/`. The
-private route, draft posts, and build inputs are intentionally kept outside this
+GitHub Pages serves the static files in `docs/`. The page uses only locally hosted
+fonts, map assets, and reel covers. Its trail data contains the posted route through
+the latest linked reel; private route plans and draft notes are kept outside this
 repository.
