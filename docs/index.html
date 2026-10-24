@@ -3,10 +3,48 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Where I've been</title>
+  <meta name="description" content="Nico Vale's posted travel trail.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Where I've been · Nico Vale</title>
+  <style>
+    :root { color: #183832; background: #f5f2ea; font-family: Arial, Helvetica, sans-serif; font-synthesis: none; }
+    * { box-sizing: border-box; } body { margin: 0; } main { max-width: 1040px; margin: auto; padding: 24px 18px 16px; }
+    .eyebrow { display: flex; align-items: center; gap: 9px; color: #355c51; font-size: 11px; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; } .eyebrow::before { width: 9px; height: 9px; border-radius: 50%; background: #bd603e; content: ''; }
+    header { padding: 42px 0 25px; } h1, h2 { font-family: Georgia, serif; font-weight: 400; } h1 { max-width: 10ch; margin: 0 0 13px; font-size: clamp(43px, 8vw, 76px); letter-spacing: -.055em; line-height: 1; } header p { margin: 0; color: #64746d; font-size: 16px; line-height: 1.5; }
+    .status { display: flex; gap: 14px; justify-content: space-between; flex-wrap: wrap; min-height: 59px; border-top: 1px solid #d5d8cc; padding: 16px 0; font-size: 13px; line-height: 1.5; } #latest { font-weight: 700; }
+    .map-shell { position: relative; overflow: hidden; border: 1px solid #d5d8cc; border-radius: 4px; background: #dce8e0; } #map { display: block; width: 100%; height: min(63svh, 560px); min-height: 350px; } #map .sea { fill: #dce8e0; } #map .land { fill: #f3eee2; stroke: #c4c7b8; stroke-width: .55; } #map .borders { fill: none; stroke: #c4c7b8; stroke-width: .32; } .tip { position: absolute; bottom: 14px; left: 14px; margin: 0; border: 1px solid #d5d8cc; border-radius: 999px; padding: 8px 12px; background: #f5f2eae8; color: #52665d; font-size: 11px; pointer-events: none; }
+    .route { fill: none; stroke: #28614f; stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; } .route.ferry { stroke-dasharray: 7 6; } .stop { cursor: pointer; outline: none; } .hit { fill: transparent; } .dot { fill: #2d6c58; stroke: #f5f2ea; stroke-width: 2px; vector-effect: non-scaling-stroke; } .stop[data-latest="true"] .dot { fill: #bd603e; } .stop:focus-visible .dot { stroke: #102c25; stroke-width: 4px; }
+    .details { min-height: 140px; padding: 26px 0 10px; } h2 { margin: 0 0 15px; font-size: 29px; letter-spacing: -.025em; } .empty { margin: 0; color: #64746d; line-height: 1.6; } .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 225px), 1fr)); gap: 14px; } .card { min-width: 0; border-top: 1px solid #d5d8cc; padding-top: 14px; } .day { margin: 0 0 9px; color: #64746d; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; } .spot { margin: 0 0 9px; overflow-wrap: anywhere; font: 20px/1.35 Georgia, serif; } .place { margin: 0; color: #64746d; font-size: 13px; line-height: 1.5; } a { display: inline-flex; align-items: center; min-height: 44px; margin-top: 8px; color: #245844; font-size: 13px; text-underline-offset: 4px; } a:focus-visible { outline: 2px solid #bd603e; outline-offset: 4px; }
+    footer { margin-top: 16px; border-top: 1px solid #d5d8cc; padding: 21px 0 8px; color: #64746d; font-size: 11px; line-height: 1.6; } @media (max-width: 420px) { .status { display: block; } #counts { margin-top: 4px; } #map { min-height: 370px; height: 55svh; } }
+  </style>
 </head>
 <body>
-  <h1>Where I've been</h1>
-  <p>The map draws itself as I go.</p>
+  <main>
+    <div class="eyebrow">Nico Vale / On the road</div>
+    <header><h1>Where I've been</h1><p>The map draws itself as I go.</p></header>
+    <section class="status" aria-live="polite"><div id="latest">The journey starts soon.</div><div id="counts"></div></section>
+    <section class="map-shell" aria-label="Nico Vale's posted trail"><svg id="map" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Map of posted towns"></svg><p class="tip" id="tip">Tap a town to see its reel</p></section>
+    <section class="details" aria-live="polite" aria-atomic="true"><h2 id="heading">The journey starts soon.</h2><div id="cards"><p class="empty">Check back after the first stop is posted.</p></div></section>
+    <footer>Nico Vale is an AI character. The places are real.</footer>
+  </main>
+  <script>
+    'use strict';
+    const ns = 'http://www.w3.org/2000/svg';
+    const byId = id => document.getElementById(id);
+    const day = value => String(value).padStart(3, '0');
+    const svg = (name, attributes) => { const node = document.createElementNS(ns, name); for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value); return node; };
+    const keyFor = stop => `${stop.place}\u0000${stop.country}`;
+    function showTown(stops) { byId('heading').textContent = stops[0].place; const cards = stops.map(stop => { const card = document.createElement('article'); card.className = 'card'; [['day', `Day ${day(stop.day)}`], ['spot', stop.spot], ['place', `${stop.place}, ${stop.country}`]].forEach(([className, text]) => { const paragraph = document.createElement('p'); paragraph.className = className; paragraph.textContent = text; card.append(paragraph); }); if (stop.post_url) { const link = document.createElement('a'); link.href = stop.post_url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Watch the reel'; card.append(link); } else { const pending = document.createElement('p'); pending.className = 'place'; pending.textContent = 'Reel coming soon'; card.append(pending); } return card; }); byId('cards').replaceChildren(...cards); }
+    async function load() {
+      const [trailResponse, mapResponse] = await Promise.all([fetch('trail.json'), fetch('basemap.svg')]); if (!trailResponse.ok || !mapResponse.ok) throw new Error('Map files unavailable');
+      const trail = await trailResponse.json(); const base = new DOMParser().parseFromString(await mapResponse.text(), 'image/svg+xml').documentElement; const map = byId('map'); map.setAttribute('viewBox', base.getAttribute('viewBox')); for (const child of [...base.children]) map.append(document.importNode(child, true)); if (!trail.stops.length) return;
+      const latest = trail.latest, towns = new Map(), xs = trail.path.map(point => point.x), ys = trail.path.map(point => point.y), span = Math.max(120, Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)); map.setAttribute('viewBox', `${(Math.min(...xs) + Math.max(...xs) - span) / 2} ${(Math.min(...ys) + Math.max(...ys) - span) / 2} ${span} ${span}`); for (const stop of trail.stops) { const key = keyFor(stop); if (!towns.has(key)) towns.set(key, []); towns.get(key).push(stop); }
+      byId('latest').textContent = `Latest: Day ${day(latest.day)} · ${latest.place}, ${latest.country}`; const countries = new Set(trail.stops.map(stop => stop.country)).size; byId('counts').textContent = `Day ${latest.day} · ${towns.size} ${towns.size === 1 ? 'town' : 'towns'} · ${countries} ${countries === 1 ? 'country' : 'countries'} so far`;
+      for (let index = 1; index < trail.path.length; index += 1) { const previous = trail.path[index - 1], current = trail.path[index]; map.append(svg('path', { d: `M ${previous.x} ${previous.y} L ${current.x} ${current.y}`, class: `route${current.ferry ? ' ferry' : ''}`, 'aria-hidden': 'true' })); }
+      for (const stops of towns.values()) { const stop = stops[0], isLatest = keyFor(stop) === keyFor(latest); const group = svg('g', { class: 'stop', role: 'button', tabindex: '0', 'data-latest': isLatest, 'aria-label': `${stop.place}, ${stop.country}: ${stops.map(item => `Day ${day(item.day)}`).join(', ')}` }); const hit = svg('circle', { class: 'hit', cx: stop.x, cy: stop.y, r: 18 }); const dot = svg('circle', { class: 'dot', cx: stop.x, cy: stop.y, r: 6 }); group.append(hit, dot); group.addEventListener('click', () => showTown(stops)); group.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); showTown(stops); } }); map.append(group); }
+      byId('tip').textContent = 'Tap a town to see its reels'; showTown(towns.get(keyFor(latest)));
+    }
+    load().catch(() => { byId('heading').textContent = 'The map is temporarily unavailable.'; byId('cards').innerHTML = '<p class="empty">Please check back soon.</p>'; });
+  </script>
 </body>
 </html>
